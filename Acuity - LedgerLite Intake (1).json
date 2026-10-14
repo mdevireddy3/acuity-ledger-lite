@@ -1,0 +1,1042 @@
+{
+  "name": "Acuity - LedgerLite Intake",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1696,
+        48
+      ],
+      "id": "8845eeef-84d4-4006-81b4-27f9bd690806",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs",
+          "mode": "list",
+          "cachedResultName": "LedgerLite - Expenses and Income",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Log",
+          "mode": "name",
+          "cachedResultName": "Log"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1488,
+        -112
+      ],
+      "id": "94512177-9c4e-49da-a219-cc013327612c",
+      "name": "Read Log",
+      "notesInFlow": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qnigLpdOLSScS8Gw",
+          "name": "Google Sheets account 2"
+        }
+      },
+      "notes": "After creating the Log tab, open this node and reselect the sheet from the dropdown so n8n picks up the real sheet ID."
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/bot8956145191:AAFhojpOyzm1jpk9rnYHuP-whwT4twl5Mh8/getUpdates",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -1488,
+        48
+      ],
+      "id": "82885b3b-beda-4c03-acb9-1ee0fc95a2fc",
+      "name": "Connect to Telegram"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "=result",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -1280,
+        48
+      ],
+      "id": "cdd6cd69-418d-4ddc-9745-d68d628650b1",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "df657894-a116-4868-af29-250eb6a372bd",
+              "leftValue": "={{ $json.message.from.id }}",
+              "rightValue": "=8981186986",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1088,
+        48
+      ],
+      "id": "b27c4e26-fde0-483c-a4df-02530b5657d2",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "const logRows = $('Read Log').all().map(i => i.json);\nconst existingKeys = new Set(logRows.map(r => String(r.Key)));\n\nconst output = [];\nfor (const item of $input.all()) {\n  const msg = item.json.message;\n  const key = `${msg.chat.id}_${msg.message_id}`;\n  if (!existingKeys.has(key)) {\n    item.json.dedupeKey = key;\n    output.push(item);\n  }\n}\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -864,
+        48
+      ],
+      "id": "6d880fe5-6383-405a-8ca1-e74ea42186be",
+      "name": "Dedupe Against Log"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "#hsa",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "45b22f75-f242-4756-b783-f7dc348fc346"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "HSA"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a16b686c-9b79-4f34-8ec9-7678b1622655",
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "#aallc",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "AALLC"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -656,
+        32
+      ],
+      "id": "b635ec9a-9be6-4004-aad3-c31d9142ca65",
+      "name": "Read and Map the message"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs",
+          "mode": "list",
+          "cachedResultName": "LedgerLite - Expenses and Income",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "HSA",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date of Service": "={{ new Date($json.message.date * 1000).toISOString().slice(0,10) }}",
+            "Description": "={{ $json.message.text.replace(/#\\w+/g, '').replace(/(?<![\\w.])\\$?\\d+(?:\\.\\d{1,2})?(?!\\w)/, '').replace(/\\s+/g, ' ').trim() }}",
+            "Amount": "={{ $json.message.text.match(/(?<![\\w.])\\$?(\\d+(?:\\.\\d{1,2})?)(?!\\w)/)?.[1] }}",
+            "Patient": "={{ /spouse|wife/i.test($json.message.text) ? 'Spouse' : 'Self' }}",
+            "Claimed (Y/N)": "N"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date of Service",
+              "displayName": "Date of Service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Provider",
+              "displayName": "Provider",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Patient",
+              "displayName": "Patient",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Receipt Link",
+              "displayName": "Receipt Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Claimed (Y/N)",
+              "displayName": "Claimed (Y/N)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Claimed Date",
+              "displayName": "Claimed Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -432,
+        -192
+      ],
+      "id": "a1204eed-1d07-469e-b2bc-aced8506d9a3",
+      "name": "HSA - Append row",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qnigLpdOLSScS8Gw",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs",
+          "mode": "list",
+          "cachedResultName": "LedgerLite - Expenses and Income",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 495038576,
+          "mode": "list",
+          "cachedResultName": "LLC",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs/edit#gid=495038576"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Amount": "={{ $json.message.text.match(/(?<![\\w.])\\$?(\\d+(?:\\.\\d{1,2})?)(?!\\w)/)?.[1] }}",
+            "Date": "={{ new Date($json.message.date * 1000).toISOString().slice(0,10) }}",
+            "Vendor": "={{ $json.message.text.replace(/#\\w+/g, '').replace(/(?<![\\w.])\\$?\\d+(?:\\.\\d{1,2})?(?!\\w)/, '').replace(/\\s+/g, ' ').trim() }}",
+            "Category": "Other"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Vendor",
+              "displayName": "Vendor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Tax",
+              "displayName": "Tax",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Business Use %",
+              "displayName": "Business Use %",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Receipt Link",
+              "displayName": "Receipt Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Paid From",
+              "displayName": "Paid From",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -432,
+        -32
+      ],
+      "id": "5ab4b43f-96f5-4df7-bea0-dc006fb1100b",
+      "name": "AALLC - Append row",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qnigLpdOLSScS8Gw",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs",
+          "mode": "list",
+          "cachedResultName": "LedgerLite - Expenses and Income",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 794500273,
+          "mode": "list",
+          "cachedResultName": "Inbox",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs/edit#gid=794500273"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Amount": "={{ $json.message.text.match(/(?<![\\w.])\\$?(\\d+(?:\\.\\d{1,2})?)(?!\\w)/)?.[1] }}",
+            "Category": "Other",
+            "Date": "={{ new Date($json.message.date * 1000).toISOString().slice(0,10) }}",
+            "Vendor": "={{ $json.message.text.replace(/#\\w+/g, '').replace(/(?<![\\w.])\\$?\\d+(?:\\.\\d{1,2})?(?!\\w)/, '').replace(/\\s+/g, ' ').trim() }}",
+            "Suggested Route": "Unknown",
+            "Telegram Message ID": "={{ $json.message.message_id }}",
+            "Status": "Needs tagging",
+            "Notes": "Untagged message"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Vendor",
+              "displayName": "Vendor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Amount",
+              "displayName": "Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Tax",
+              "displayName": "Tax",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Suggested Route",
+              "displayName": "Suggested Route",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Receipt Link",
+              "displayName": "Receipt Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Telegram Message ID",
+              "displayName": "Telegram Message ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -432,
+        128
+      ],
+      "id": "2b7adf45-ad1c-4900-b2c3-1b37c0365cfa",
+      "name": "Inbox - Append row",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qnigLpdOLSScS8Gw",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs",
+          "mode": "list",
+          "cachedResultName": "LedgerLite - Expenses and Income",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Log",
+          "mode": "name",
+          "cachedResultName": "Log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Key": "={{ $('Dedupe Against Log').item.json.dedupeKey }}",
+            "Received": "={{ $now }}",
+            "Telegram Text": "={{ $('Dedupe Against Log').item.json.message.text }}",
+            "Route": "HSA",
+            "Status": "filed"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Key",
+              "displayName": "Key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Received",
+              "displayName": "Received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Telegram Text",
+              "displayName": "Telegram Text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Route",
+              "displayName": "Route",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -208,
+        -192
+      ],
+      "id": "f1b2face-8cd0-4146-b897-775fdce4a652",
+      "name": "Log - HSA Filed",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qnigLpdOLSScS8Gw",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs",
+          "mode": "list",
+          "cachedResultName": "LedgerLite - Expenses and Income",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Log",
+          "mode": "name",
+          "cachedResultName": "Log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Key": "={{ $('Dedupe Against Log').item.json.dedupeKey }}",
+            "Received": "={{ $now }}",
+            "Telegram Text": "={{ $('Dedupe Against Log').item.json.message.text }}",
+            "Route": "LLC",
+            "Status": "filed"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Key",
+              "displayName": "Key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Received",
+              "displayName": "Received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Telegram Text",
+              "displayName": "Telegram Text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Route",
+              "displayName": "Route",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -208,
+        -32
+      ],
+      "id": "0e7f1c26-d482-4c87-b951-e79877dc2667",
+      "name": "Log - LLC Filed",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qnigLpdOLSScS8Gw",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs",
+          "mode": "list",
+          "cachedResultName": "LedgerLite - Expenses and Income",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1wcl1Wnn1AgNpQ5EFg8O5MgaqxXoPTNYDUcrlCvVYzqs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Log",
+          "mode": "name",
+          "cachedResultName": "Log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Key": "={{ $('Dedupe Against Log').item.json.dedupeKey }}",
+            "Received": "={{ $now }}",
+            "Telegram Text": "={{ $('Dedupe Against Log').item.json.message.text }}",
+            "Route": "Inbox",
+            "Status": "filed"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Key",
+              "displayName": "Key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Received",
+              "displayName": "Received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Telegram Text",
+              "displayName": "Telegram Text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Route",
+              "displayName": "Route",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -208,
+        128
+      ],
+      "id": "e45738d7-164b-4761-8663-59c65f70c371",
+      "name": "Log - Inbox Filed",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qnigLpdOLSScS8Gw",
+          "name": "Google Sheets account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Connect to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Connect to Telegram": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Dedupe Against Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedupe Against Log": {
+      "main": [
+        [
+          {
+            "node": "Read and Map the message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read and Map the message": {
+      "main": [
+        [
+          {
+            "node": "HSA - Append row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AALLC - Append row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Inbox - Append row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HSA - Append row": {
+      "main": [
+        [
+          {
+            "node": "Log - HSA Filed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AALLC - Append row": {
+      "main": [
+        [
+          {
+            "node": "Log - LLC Filed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inbox - Append row": {
+      "main": [
+        [
+          {
+            "node": "Log - Inbox Filed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "dc92a21e-bbe1-45fa-9198-cce28ccff5bd",
+  "meta": {
+    "instanceId": "adc866674430fc3308560b7bcc1be289ed8b084aba1d3574c1d69b711b92df05"
+  },
+  "nodeGroups": [],
+  "id": "BYew1S7gTIAJQETi",
+  "tags": []
+}
